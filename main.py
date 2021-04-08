@@ -3,8 +3,9 @@ from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
 import threading
+import time
 
-client = commands.Bot(command_prefix='/')
+client = commands.Bot(command_prefix='.')
 
 main_class = ""
 listings = []
@@ -14,6 +15,8 @@ ebay_username = ""
 ebay_accounts = []
 ebay_listing = ""
 listing_image = ""
+sent_webhooks = []
+webhook = False
 
 @client.event
 async def on_ready():
@@ -46,20 +49,52 @@ async def setup(ctx):
 
 @client.command()
 async def start(ctx):
+    global ebay_listing
+    global listing_image
+    global webhook
+
+    print("starting")
+
+    new_listing_embed = discord.Embed(
+        title=("New Listing Found!"),
+        url = ebay_listing
+    )
+    new_listing_embed.add_field(name="Adding Views!", value="------------------")
+    new_listing_embed.set_image(url=listing_image)
 
     def initial_request():
+        global sent_webhooks
+        global webhook
         r = requests.get("https://www.ebay.com/sch/kicksexotic/m.html?_nkw=&_armrs=1&_ipg=&_from=")
+        print("sent request")
         soup = BeautifulSoup(r.content, "html.parser")
         main_class = soup.find_all(class_="lvtitle")
         for listing in main_class:
             listings.append(listing)
-        # print(main_class)
         for item in listings:
             if "New Listing".lower() in str(item).lower():
                 new_listings.append(item)
-                find_url()
-                find_image()
-                await ctx.send(new_listing_embed)
+                print(str(new_listings) + "[NEW LISTINGS]")
+                sent_webhooks.append(new_listings[-1])
+                for previous_listing in sent_webhooks:
+                    print(str(previous_listing))
+                    if str(previous_listing).lower() == str(new_listings[0]).lower():
+                        print("listings are the same")
+                        break
+                    else:
+                        print("listings are different")
+                        find_url()
+                        print("found url")
+                        find_image()
+                        print("found image")
+                        new_listings.pop(-1)
+                        print(new_listings)
+                        print("starting threads")
+                        start_threads()
+                        webhook = True
+            else:
+                print("No new listings")
+
 
     def find_image():
         global listing_image
@@ -77,28 +112,16 @@ async def start(ctx):
         parse2 = parse1[1].split('"')
         ebay_listing = str(parse2[0])
 
-
-    new_listing_embed = discord.Embed(
-        title=("New Listing Found!"),
-        url = ebay_listing
-    )
-    new_listing_embed.add_field(name="Listing:", value="fewafgewa") #come bakc
-    new_listing_embed.set_image(url=listing_image)
-
-
-
-
-
     threads = []
 
     def viewer():
         count = 0
-        while count < 200:
+        while count < 5:
             response = requests.get(ebay_listing)
             count += 1
 
     def start_threads():
-        for _ in range(50):
+        for _ in range(2):
             t = threading.Thread(target=viewer)
             t.start()
             threads.append(t)
@@ -108,7 +131,12 @@ async def start(ctx):
 
     while True:
         initial_request()
-
+        if webhook:
+            print("webhook")
+            await ctx.send(embed=new_listing_embed)
+            time.sleep(5)
+            webhook = False
+        time.sleep(20)
 
 
 
