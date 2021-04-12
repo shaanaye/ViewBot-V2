@@ -18,7 +18,7 @@ ebay_listing = ""
 listing_image = ""
 sent_webhooks = []
 count = 0
-webhook = False
+
 
 
 @client.event
@@ -56,16 +56,19 @@ async def setup(ctx):
 async def start(ctx):
     global ebay_listing
     global listing_image
-    global webhook
-
+    global sent_webhooks
+    global count
     print("starting")
     print(ebay_listing)
+
+
+
+
 
     def initial_request():
         global sent_webhooks
         global webhook
         global listings
-        global count
         global listing_image
         global ebay_listing
         global new_listings
@@ -85,7 +88,6 @@ async def start(ctx):
         listings.clear()
         print(new_listings)
 
-
         for new_listing in new_listings:
             if new_listing in sent_webhooks:
                 print("Listings Has Already Been Sent")
@@ -98,7 +100,7 @@ async def start(ctx):
                 sent_webhooks.append(new_listing)
                 print("Added views to " + ebay_listing)
                 print(new_listings)
-                time.sleep(5)
+                time.sleep(4)
                 webhook = True
         new_listings.clear()
         print(str(new_listings) + "[NEW LISTINGS]")
@@ -116,7 +118,7 @@ async def start(ctx):
 
     def find_url():
         global ebay_listing
-        parse = str(new_listings[-1])
+        parse = str(sent_listing)
         parse1 = parse.split('href="')
         parse2 = parse1[1].split('"')
         ebay_listing = str(parse2[0])
@@ -138,18 +140,20 @@ async def start(ctx):
         for thread in threads:
             thread.join()
 
-    print(ebay_listing)
 
-
-    print(ebay_listing)
-    print(listing_image)
     while True:
         initial_request()
-        new_listing_embed = discord.Embed(
-            title=("New Listing Embed"),
-            url=ebay_listing,
-        )
-        new_listing_embed.add_field(name="Added Views", value="--------------")
+        if count == 0:
+            for sent_listing in sent_webhooks:
+                find_url()
+                find_image()
+                new_listing_embed = Embed(
+                    description=f'[**New Listing Found!**]({ebay_listing})',
+                    color=0x00FF00,
+                )
+                new_listing_embed.add_field(name="Added Views", value="-----------------")
+                await ctx.send(embed=new_listing_embed)
+                print(ebay_listing)
         time.sleep(20)
 
 
