@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import discord
 from discord.ext import commands
+from dhooks import Webhook, Embed
 import threading
 import time
 
@@ -16,11 +17,14 @@ ebay_accounts = []
 ebay_listing = ""
 listing_image = ""
 sent_webhooks = []
+count = 0
 webhook = False
+
 
 @client.event
 async def on_ready():
     print("ready")
+
 
 @client.command()
 async def setup(ctx):
@@ -47,6 +51,7 @@ async def setup(ctx):
 
     ebay_accounts.append(ebay_username.content)
 
+
 @client.command()
 async def start(ctx):
     global ebay_listing
@@ -54,46 +59,50 @@ async def start(ctx):
     global webhook
 
     print("starting")
-
-    new_listing_embed = discord.Embed(
-        title=("New Listing Found!"),
-        url = ebay_listing
-    )
-    new_listing_embed.add_field(name="Adding Views!", value="------------------")
-    new_listing_embed.set_image(url=listing_image)
+    print(ebay_listing)
 
     def initial_request():
         global sent_webhooks
         global webhook
-        r = requests.get("https://www.ebay.com/sch/kicksexotic/m.html?_nkw=&_armrs=1&_ipg=&_from=")
+        global listings
+        global count
+        global listing_image
+        global ebay_listing
+        global new_listings
+        r = requests.get("https://www.ebay.com/sch/aaarated7/m.html?_nkw=&_armrs=1&_ipg=&_from=")
         print("sent request")
         soup = BeautifulSoup(r.content, "html.parser")
         main_class = soup.find_all(class_="lvtitle")
         for listing in main_class:
             listings.append(listing)
+        main_class.clear()
+        print(str(listings) + "ALL LISTINGS")
         for item in listings:
             if "New Listing".lower() in str(item).lower():
                 new_listings.append(item)
-                print(str(new_listings) + "[NEW LISTINGS]")
-                sent_webhooks.append(new_listings[-1])
-                for previous_listing in sent_webhooks:
-                    print(str(previous_listing))
-                    if str(previous_listing).lower() == str(new_listings[0]).lower():
-                        print("listings are the same")
-                        break
-                    else:
-                        print("listings are different")
-                        find_url()
-                        print("found url")
-                        find_image()
-                        print("found image")
-                        new_listings.pop(-1)
-                        print(new_listings)
-                        print("starting threads")
-                        start_threads()
-                        webhook = True
             else:
-                print("No new listings")
+                print("No New Listings")
+        listings.clear()
+        print(new_listings)
+
+
+        for new_listing in new_listings:
+            if new_listing in sent_webhooks:
+                print("Listings Has Already Been Sent")
+            else:
+                parse = str(new_listing)
+                parse1 = parse.split('href="')
+                parse2 = parse1[1].split('"')
+                ebay_listing = str(parse2[0])
+                start_threads()
+                sent_webhooks.append(new_listing)
+                print("Added views to " + ebay_listing)
+                print(new_listings)
+                time.sleep(5)
+                webhook = True
+        new_listings.clear()
+        print(str(new_listings) + "[NEW LISTINGS]")
+        print(str(sent_webhooks) + "[SENT WEBHOOKS]")
 
 
     def find_image():
@@ -129,15 +138,19 @@ async def start(ctx):
         for thread in threads:
             thread.join()
 
+    print(ebay_listing)
+
+
+    print(ebay_listing)
+    print(listing_image)
     while True:
         initial_request()
-        if webhook:
-            print("webhook")
-            await ctx.send(embed=new_listing_embed)
-            time.sleep(5)
-            webhook = False
+        new_listing_embed = discord.Embed(
+            title=("New Listing Embed"),
+            url=ebay_listing,
+        )
+        new_listing_embed.add_field(name="Added Views", value="--------------")
         time.sleep(20)
-
 
 
 client.run("ODI3OTE1NzgzMDEwMjU0ODg4.YGh-qA.gUBmyAJGyb8u2X5taS6UCCTnN-k")
