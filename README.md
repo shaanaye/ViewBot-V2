@@ -1,4 +1,4 @@
-** Code has not been updated > 1 year. Most likely does not work but results can be replicated **
+** Code has not been updated > 1 year. **
 
 # ViewBot-V2
 
